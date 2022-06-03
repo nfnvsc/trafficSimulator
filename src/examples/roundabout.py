@@ -1,5 +1,4 @@
-import numpy as np
-from trafficSimulator import *
+from src.trafficSimulator import *
 
 sim = Simulation()
 
