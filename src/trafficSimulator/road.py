@@ -10,6 +10,8 @@ class Road:
 
         self.init_properties()
 
+        self.metrics = {}
+
     def init_properties(self):
         self.length = distance.euclidean(self.start, self.end)
         self.angle_sin = (self.end[1]-self.start[1]) / self.length
@@ -28,6 +30,20 @@ class Road:
             i = self.traffic_signal_group
             return self.traffic_signal.current_cycle[i]
         return True
+
+    @property
+    def n_vehicles(self):
+        return len(self.vehicles)
+
+    def update_metrics(self):
+        avg_speed = 0
+        for v in self.vehicles:
+            avg_speed += v.v
+
+        if len(self.vehicles) != 0:
+            avg_speed /= len(self.vehicles)
+
+        self.metrics['avg_speed'] = avg_speed
 
     def update(self, dt):
         n = len(self.vehicles)
@@ -56,3 +72,5 @@ class Road:
                    self.vehicles[0].x <= self.length - self.traffic_signal.stop_distance / 2:
                     # Stop vehicles in the stop zone
                     self.vehicles[0].stop()
+
+        self.update_metrics()

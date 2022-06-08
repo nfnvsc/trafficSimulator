@@ -53,7 +53,10 @@ class Vehicle:
 
         if self.stopped: 
             self.a = -self.b_max*self.v/self.v_max
-        
+    
+    def collides(self, vehicle):
+        return abs(self.x - vehicle.x) < 1
+
     def stop(self):
         self.stopped = True
 
