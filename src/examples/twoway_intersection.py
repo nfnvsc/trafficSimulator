@@ -1,3 +1,5 @@
+import sys
+sys.path.append('.')
 from src.trafficSimulator import *
 
 sim = Simulation()
@@ -114,8 +116,9 @@ sim.create_gen({
     [1, {'path': [3, *road(12+7*n), 6]}]
 ]})
 
-sim.create_signal([[0, 2], [1, 3]])
-
+sim.create_signal([[0]])
+sim.create_signal([[1]])
+sim.create_agents()
 
 # Start simulation
 win = Window(sim)

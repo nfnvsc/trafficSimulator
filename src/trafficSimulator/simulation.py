@@ -2,6 +2,7 @@ from .road import Road
 from copy import deepcopy
 from .vehicle_generator import VehicleGenerator
 from .traffic_signal import TrafficSignal
+from .learning.Agent import Agent
 
 class Simulation:
     def __init__(self, config={}):
@@ -19,6 +20,7 @@ class Simulation:
         self.roads = []         # Array to store roads
         self.generators = []
         self.traffic_signals = []
+        self.agents = []
 
     def create_road(self, start, end):
         road = Road(start, end)
@@ -36,9 +38,33 @@ class Simulation:
 
     def create_signal(self, roads, config={}):
         roads = [[self.roads[i] for i in road_group] for road_group in roads]
+
         sig = TrafficSignal(roads, config)
         self.traffic_signals.append(sig)
+        agent = Agent(self, sig)
+        self.agents.append(agent)
         return sig
+
+    def create_agents(self):
+        return
+        for sig in self.traffic_signals:
+            agent = Agent(self, sig)
+            self.agents.append(agent)
+
+    @property
+    def state(self):
+        vehicle_count = []
+        avg_speed = 0
+        total_vehicles = 1
+        for r in self.roads:
+            if r.has_traffic_signal:
+                vehicle_count.append(len(r.vehicles))
+                for v in r.vehicles:
+                    total_vehicles += 1
+                    avg_speed += v.v
+
+        return [*vehicle_count, int(avg_speed/total_vehicles)]
+
 
     def update(self):
         # Update every road
@@ -49,8 +75,8 @@ class Simulation:
         for gen in self.generators:
             gen.update()
 
-        for signal in self.traffic_signals:
-            signal.update(self)
+        for agent in self.agents:
+            agent.act()
 
         # Check roads for out of bounds vehicle
         for road in self.roads:
@@ -72,6 +98,10 @@ class Simulation:
                     self.roads[next_road_index].vehicles.append(new_vehicle)
                 # In all cases, remove it from its road
                 road.vehicles.popleft() 
+
+        for agent in self.agents:
+            agent.update()
+
         # Increment time
         self.t += self.dt
         self.frame_count += 1
