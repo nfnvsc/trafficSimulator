@@ -4,6 +4,11 @@ from .vehicle_generator import VehicleGenerator
 from .traffic_signal import TrafficSignal
 from .learning.Agent import Agent
 
+import math
+
+def check_collision(pos1, pos2):
+    return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2) < 2
+
 class Simulation:
     def __init__(self, config={}):
         # Set default configuration
@@ -13,6 +18,8 @@ class Simulation:
         for attr, val in config.items():
             setattr(self, attr, val)
 
+        self.metrics = {}
+
     def set_default_config(self):
         self.t = 0.0            # Time keeping
         self.frame_count = 0    # Frame count keeping
@@ -21,6 +28,9 @@ class Simulation:
         self.generators = []
         self.traffic_signals = []
         self.agents = []
+        self.collisions = 0
+
+        self.counter = 0
 
     def create_road(self, start, end):
         road = Road(start, end)
@@ -65,6 +75,13 @@ class Simulation:
 
         return [*vehicle_count, int(avg_speed/total_vehicles)]
 
+    def update_metrics(self):
+        self.metrics = {"collisions": self.collisions}
+
+        for sig in self.traffic_signals:
+            self.metrics.update(sig.metrics)
+        for road in self.roads:
+            self.metrics.update(road.metrics)
 
     def update(self):
         # Update every road
@@ -75,8 +92,9 @@ class Simulation:
         for gen in self.generators:
             gen.update()
 
-        for agent in self.agents:
-            agent.act()
+        if self.counter % 5000 == 2500:
+            for agent in self.agents:
+                agent.act()
 
         # Check roads for out of bounds vehicle
         for road in self.roads:
@@ -99,12 +117,31 @@ class Simulation:
                 # In all cases, remove it from its road
                 road.vehicles.popleft() 
 
-        for agent in self.agents:
-            agent.update()
+        if self.counter % 5000 == 0:
+            for agent in self.agents:
+                agent.update()
+
+        vehicles = []
+        for road in self.roads:
+            for vehicle in road.vehicles:
+                sin, cos = road.angle_sin, road.angle_cos
+                x = road.start[0] + cos * vehicle.x 
+                y = road.start[1] + sin * vehicle.x 
+                vehicles += [(x, y)]
+
+        for i, v1 in enumerate(vehicles):
+            for i2 in range(i + 1, len(vehicles)):
+                v2 = vehicles[i2]
+                if check_collision(v1, v2):
+                    self.collisions += 1
+                    #delete car?
+
 
         # Increment time
         self.t += self.dt
+        self.counter += 1
         self.frame_count += 1
+        self.update_metrics()
 
 
     def run(self, steps):
