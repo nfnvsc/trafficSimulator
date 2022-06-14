@@ -118,7 +118,6 @@ sim.create_gen({
 
 sim.create_signal([[0]])
 sim.create_signal([[1]])
-sim.create_agents()
 
 # Start simulation
 win = Window(sim)

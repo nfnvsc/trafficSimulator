@@ -74,3 +74,6 @@ class Road:
                     self.vehicles[0].stop()
 
         self.update_metrics()
+    
+    def reset(self):
+        self.vehicles.clear()

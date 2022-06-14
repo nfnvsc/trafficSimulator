@@ -1,5 +1,6 @@
 from .vehicle import Vehicle
-from numpy.random import randint
+
+import numpy as np
 
 class VehicleGenerator:
     def __init__(self, sim, config={}):
@@ -24,12 +25,13 @@ class VehicleGenerator:
         self.last_added_time = 0
 
     def init_properties(self):
+        self.rng = np.random.default_rng(2021)
         self.upcoming_vehicle = self.generate_vehicle()
 
     def generate_vehicle(self):
         """Returns a random vehicle from self.vehicles with random proportions"""
         total = sum(pair[0] for pair in self.vehicles)
-        r = randint(1, total+1)
+        r = self.rng.integers(1, total+1)
         for (weight, config) in self.vehicles:
             r -= weight
             if r <= 0:
@@ -50,3 +52,7 @@ class VehicleGenerator:
                 self.last_added_time = self.sim.t
             self.upcoming_vehicle = self.generate_vehicle()
 
+    def reset(self):
+        self.last_added_time = 0
+
+        self.init_properties()

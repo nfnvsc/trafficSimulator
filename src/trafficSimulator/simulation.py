@@ -6,6 +6,9 @@ from .learning.Agent import Agent
 
 import math
 
+import random
+
+
 def check_collision(pos1, pos2):
     return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2) < 2
 
@@ -23,14 +26,13 @@ class Simulation:
     def set_default_config(self):
         self.t = 0.0            # Time keeping
         self.frame_count = 0    # Frame count keeping
-        self.dt = 1/60          # Simulation time step
+        self.dt = 1/6          # Simulation time step
         self.roads = []         # Array to store roads
         self.generators = []
         self.traffic_signals = []
         self.agents = []
         self.collisions = 0
-
-        self.counter = 0
+        self.configs = []
 
     def create_road(self, start, end):
         road = Road(start, end)
@@ -41,7 +43,8 @@ class Simulation:
         for road in road_list:
             self.create_road(*road)
 
-    def create_gen(self, config={}):
+    def create_gen(self, config={}, init=True):
+        if init: self.configs.append(config)
         gen = VehicleGenerator(self, config)
         self.generators.append(gen)
         return gen
@@ -51,15 +54,9 @@ class Simulation:
 
         sig = TrafficSignal(roads, config)
         self.traffic_signals.append(sig)
-        agent = Agent(self, sig)
+        agent = Agent(self, sig, len(self.agents))
         self.agents.append(agent)
         return sig
-
-    def create_agents(self):
-        return
-        for sig in self.traffic_signals:
-            agent = Agent(self, sig)
-            self.agents.append(agent)
 
     @property
     def state(self):
@@ -85,14 +82,15 @@ class Simulation:
 
     def update(self):
         # Update every road
+        time = 60
         for road in self.roads:
             road.update(self.dt)
 
         # Add vehicles
         for gen in self.generators:
             gen.update()
-
-        if self.counter % 5000 == 2500:
+        
+        if self.frame_count % (time / self.dt) == 0:
             for agent in self.agents:
                 agent.act()
 
@@ -117,7 +115,7 @@ class Simulation:
                 # In all cases, remove it from its road
                 road.vehicles.popleft() 
 
-        if self.counter % 5000 == 0:
+        if self.frame_count % (time / self.dt) == (time / self.dt / 2):
             for agent in self.agents:
                 agent.update()
 
@@ -139,11 +137,30 @@ class Simulation:
 
         # Increment time
         self.t += self.dt
-        self.counter += 1
         self.frame_count += 1
         self.update_metrics()
+
+        if self.frame_count == 1000:
+            print(self.state)
+            self.reset()
 
 
     def run(self, steps):
         for _ in range(steps):
             self.update()
+        
+    def reset(self):
+        self.t = 0.0
+        self.frame_count = 0
+
+        self.generators = []
+
+        for config in self.configs:
+            self.create_gen(config, init=False)
+
+        for road in self.roads:
+            road.reset()
+        
+        for agent in self.agents:
+            agent.reset()
+        
