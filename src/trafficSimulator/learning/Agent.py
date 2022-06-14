@@ -5,7 +5,7 @@ from collections import defaultdict
 import time
 
 class Agent:
-    def __init__(self, env, signal, id, epsilon=0.0):
+    def __init__(self, env, signal, id, epsilon=0.4):
         self.signal = signal
         self.epsilon = epsilon
         self.id = id
@@ -27,10 +27,13 @@ class Agent:
     def reward(self):
         def calc_reward(state):
             if state != None:
-                if sum(state[:-2]) == 0:
+                if sum(state[0]) == 0:
                     return 0
-                return (-sum(state[:-2])) + (state[-1])
+                if state[2] > 0:
+                    return -100
+                return (-sum(state[0])) + (state[-1])
             return 0
+
 
         reward = calc_reward(self.env.state) - calc_reward(self.previous_state)
 

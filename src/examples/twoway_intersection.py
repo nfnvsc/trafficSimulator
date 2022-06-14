@@ -122,4 +122,4 @@ sim.create_signal([[1]])
 # Start simulation
 win = Window(sim)
 win.zoom = 10
-win.run(steps_per_update=10)
+win.run(steps_per_update=1000)
