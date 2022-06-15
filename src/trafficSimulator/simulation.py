@@ -3,11 +3,14 @@ from copy import deepcopy
 from .vehicle_generator import VehicleGenerator
 from .traffic_signal import TrafficSignal
 from .learning.Agent import Agent
-from time import sleep
+from time import sleep, time
+
+import numpy as np
 import math
-
 import random
+from itertools import combinations
 
+from scipy.spatial.distance import cdist
 
 def check_collision(pos1, pos2):
     return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2) < 2
@@ -44,7 +47,8 @@ class Simulation:
             self.create_road(*road)
 
     def create_gen(self, config={}, init=True):
-        if init: self.configs.append(config)
+        if init: 
+            self.configs.append(config)
         gen = VehicleGenerator(self, config)
         self.generators.append(gen)
         return gen
@@ -54,7 +58,14 @@ class Simulation:
 
         sig = TrafficSignal(roads, config)
         self.traffic_signals.append(sig)
-        agent = Agent(self, sig, len(self.agents))
+
+        agent = Agent(self, sig, {
+            "id": len(self.agents),
+            "epsilon": 0.4,
+            "alpha": 0.6,
+            "gamma": 0.9
+        })
+
         self.agents.append(agent)
         return sig
 
@@ -69,32 +80,36 @@ class Simulation:
                 for v in r.vehicles:
                     total_vehicles += 1
                     avg_speed += v.v
-
         return [[*vehicle_count], int(avg_speed/total_vehicles), self.collisions]
 
     def update_metrics(self):
-        self.metrics = {"collisions": self.collisions}
+        #a = np.array([road.metrics['avg_speed'] for road in self.roads])
+        #avg = a[a!=0].mean()
 
-        for sig in self.traffic_signals:
-            self.metrics.update(sig.metrics)
-        for road in self.roads:
-            self.metrics.update(road.metrics)
+        self.metrics = {
+            "collisions": self.collisions,
+           # "avg_speed": avg
+        }
+
 
     def _check_collisions(self):
         vehicles = []
-        for road in self.roads:
+        xs = []
+        ys = []
+        for i, road in enumerate(self.roads):
             for vehicle in road.vehicles:
                 sin, cos = road.angle_sin, road.angle_cos
                 x = road.start[0] + cos * vehicle.x 
                 y = road.start[1] + sin * vehicle.x 
-                vehicles += [(x, y)]
+                vehicles += [(x, y, i)]
+                xs.append(x)
+                ys.append(y)
 
         for i, v1 in enumerate(vehicles):
             for i2 in range(i + 1, len(vehicles)):
                 v2 = vehicles[i2]
-                if check_collision(v1, v2):
+                if v1[2] != v2[2] and check_collision(v1, v2):
                     self.collisions += 1
-                    #delete car?
 
     def update(self):
         # Update every road
@@ -130,7 +145,7 @@ class Simulation:
                     self.roads[next_road_index].vehicles.append(new_vehicle)
                 # In all cases, remove it from its road
                 road.vehicles.popleft() 
-
+            
         if self.frame_count % (time / self.dt) == (time / self.dt / 2):
             for agent in self.agents:
                 agent.update()

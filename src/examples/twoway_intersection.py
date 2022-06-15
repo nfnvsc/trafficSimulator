@@ -119,7 +119,9 @@ sim.create_gen({
 sim.create_signal([[0]])
 sim.create_signal([[1]])
 
+while True:
+    sim.update()
 # Start simulation
 win = Window(sim)
 win.zoom = 10
-win.run(steps_per_update=1000)
+win.run(steps_per_update=5)
