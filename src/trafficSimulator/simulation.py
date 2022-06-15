@@ -36,6 +36,7 @@ class Simulation:
         self.agents = []
         self.collisions = 0
         self.configs = []
+        self.multithreaded = False
 
     def create_road(self, start, end):
         road = Road(start, end)
@@ -53,7 +54,7 @@ class Simulation:
         self.generators.append(gen)
         return gen
 
-    def create_signal(self, roads, config={}):
+    def create_signal(self, roads, lock=None, config={}):
         roads = [[self.roads[i] for i in road_group] for road_group in roads]
 
         sig = TrafficSignal(roads, config)
@@ -61,9 +62,11 @@ class Simulation:
 
         agent = Agent(self, sig, {
             "id": len(self.agents),
-            "epsilon": 0.4,
+            "epsilon": 0.5,
             "alpha": 0.6,
-            "gamma": 0.9
+            "gamma": 0.9,
+            "multithreaded": self.multithreaded,
+            "lock": lock
         })
 
         self.agents.append(agent)
@@ -71,16 +74,20 @@ class Simulation:
 
     @property
     def state(self):
+        vehicles = []
         vehicle_count = []
         avg_speed = 0
         total_vehicles = 1
-        for r in self.roads:
+        for i, r in enumerate(self.roads):
+            for v in r.vehicles:
+                vehicles.append([(i, int(v.x))])
             if r.has_traffic_signal:
                 vehicle_count.append(len(r.vehicles))
                 for v in r.vehicles:
                     total_vehicles += 1
                     avg_speed += v.v
-        return [[*vehicle_count], int(avg_speed/total_vehicles), self.collisions]
+        
+        return [[*vehicle_count], int(avg_speed/total_vehicles), self.collisions, vehicles]
 
     def update_metrics(self):
         #a = np.array([road.metrics['avg_speed'] for road in self.roads])
@@ -158,11 +165,14 @@ class Simulation:
         self.update_metrics()
 
         if self.collisions > 1:
-            print(self.state)
             self.reset()
 
 
-    def run(self, steps):
+    def run_forever(self):
+        while True:
+            self.update()
+
+    def run(self, steps=None):
         for _ in range(steps):
             self.update()
         
