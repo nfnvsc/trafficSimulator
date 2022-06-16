@@ -27,6 +27,7 @@ class Simulation:
         self.agents = []
         self.configs = []
         self.multithreaded = False
+        self.sarsa = False
         self.metrics = {
             "collisions": 0,
             "avg_speed": 0,
@@ -56,7 +57,7 @@ class Simulation:
         sig = TrafficSignal(roads, config)
         self.traffic_signals.append(sig)
 
-        agent = Agent(self, sig, {
+        agent = Agent(self, sig, self.sarsa, {
             "id": len(self.agents),
             "epsilon": 0.0,
             "alpha": 0.6,
@@ -152,7 +153,6 @@ class Simulation:
 
         if self.metrics["collisions"] > 1:
             self.reset()
-
 
         if self.frame_count % (time / self.dt) == (time / self.dt / 2):
             for agent in self.agents:
