@@ -36,6 +36,7 @@ class Agent:
 
         self.load_qtable()
 
+        self.previous_action = None
         self.previous_state = None
         self.previous_reward = 0
 
@@ -106,8 +107,6 @@ class Agent:
     def update(self):
         self._lock()
 
-        self.act()
-
         if not self.using_sarsa:
             action = self.signal.current_cycle_index
             old_value = self.q_table[str(self.previous_state)][action]
@@ -119,6 +118,9 @@ class Agent:
 
         else:
             # Do sarsa things
+            if self.previous_action is None:
+                self.previous_action = self.signal.current_cycle_index
+
             current_q = self.q_table[str(self.previous_state)][self.previous_action]
 
             new_action = np.argmax(self.q_table[str(self.env.state)])
