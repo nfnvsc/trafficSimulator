@@ -2,7 +2,7 @@ import sys
 sys.path.append('.')
 from src.trafficSimulator import *
 
-sim = Simulation()
+sim = MultithreadSimulation()
 
 # Play with these
 n = 15
@@ -118,7 +118,7 @@ sim.create_gen({
 
 sim.create_signal([[0]])
 sim.create_signal([[1]])
-#sim.run()
+#sim.run_forever()
 #while True:
 #    sim.update()
 # Start simulation

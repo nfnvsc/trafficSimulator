@@ -4,13 +4,7 @@ from .vehicle_generator import VehicleGenerator
 from .traffic_signal import TrafficSignal
 from .learning.Agent import Agent
 from time import sleep, time
-
-import numpy as np
 import math
-import random
-from itertools import combinations
-
-from scipy.spatial.distance import cdist
 
 def check_collision(pos1, pos2):
     return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2) < 2
@@ -19,12 +13,9 @@ class Simulation:
     def __init__(self, config={}):
         # Set default configuration
         self.set_default_config()
-
         # Update configuration
         for attr, val in config.items():
             setattr(self, attr, val)
-
-        self.metrics = {}
 
     def set_default_config(self):
         self.t = 0.0            # Time keeping
@@ -34,9 +25,14 @@ class Simulation:
         self.generators = []
         self.traffic_signals = []
         self.agents = []
-        self.collisions = 0
         self.configs = []
         self.multithreaded = False
+        self.metrics = {
+            "collisions": 0,
+            "avg_speed": 0,
+            "vehicles": [],
+            "vehicle_count": 0
+        }
 
     def create_road(self, start, end):
         road = Road(start, end)
@@ -62,7 +58,7 @@ class Simulation:
 
         agent = Agent(self, sig, {
             "id": len(self.agents),
-            "epsilon": 0.5,
+            "epsilon": 0.0,
             "alpha": 0.6,
             "gamma": 0.9,
             "multithreaded": self.multithreaded,
@@ -75,29 +71,28 @@ class Simulation:
     @property
     def state(self):
         vehicles = []
+        for v in self.metrics['vehicles']:
+            vehicles.append((v[0], v[1] // 50))
+        s = [vehicles]
+        return s
+
+    def update_metrics(self):
+        vehicles = []
         vehicle_count = []
         avg_speed = 0
         total_vehicles = 1
         for i, r in enumerate(self.roads):
             for v in r.vehicles:
-                vehicles.append([(i, int(v.x))])
+                vehicles.append((i, int(v.x)))
             if r.has_traffic_signal:
                 vehicle_count.append(len(r.vehicles))
                 for v in r.vehicles:
                     total_vehicles += 1
                     avg_speed += v.v
-        
-        return [[*vehicle_count], int(avg_speed/total_vehicles), self.collisions, vehicles]
 
-    def update_metrics(self):
-        #a = np.array([road.metrics['avg_speed'] for road in self.roads])
-        #avg = a[a!=0].mean()
-
-        self.metrics = {
-            "collisions": self.collisions,
-           # "avg_speed": avg
-        }
-
+        self.metrics["avg_speed"] = int(avg_speed/total_vehicles)
+        self.metrics["vehicles"] = vehicles
+        self.metrics["vehicle_count"] = vehicle_count
 
     def _check_collisions(self):
         vehicles = []
@@ -116,7 +111,7 @@ class Simulation:
             for i2 in range(i + 1, len(vehicles)):
                 v2 = vehicles[i2]
                 if v1[2] != v2[2] and check_collision(v1, v2):
-                    self.collisions += 1
+                    self.metrics["collisions"] += 1
 
     def update(self):
         # Update every road
@@ -153,20 +148,20 @@ class Simulation:
                 # In all cases, remove it from its road
                 road.vehicles.popleft() 
             
+        self._check_collisions()
+
+        if self.metrics["collisions"] > 1:
+            self.reset()
+
+
         if self.frame_count % (time / self.dt) == (time / self.dt / 2):
             for agent in self.agents:
                 agent.update()
-
-        self._check_collisions()
 
         # Increment time
         self.t += self.dt
         self.frame_count += 1
         self.update_metrics()
-
-        if self.collisions > 1:
-            self.reset()
-
 
     def run_forever(self):
         while True:
@@ -177,9 +172,16 @@ class Simulation:
             self.update()
         
     def reset(self):
+        for agent in self.agents:
+            agent.update()
         self.t = 0.0
         self.frame_count = 0
-        self.collisions = 0
+        self.metrics = {
+            "collisions": 0,
+            "avg_speed": 0,
+            "vehicles": [],
+            "vehicle_count": 0
+        }
 
         self.generators = []
 

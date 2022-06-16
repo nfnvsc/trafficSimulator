@@ -5,9 +5,10 @@ from collections import defaultdict
 import time
 
 class DefaultDict:
-    def __init__(self, base, default):
+    def __init__(self, base, default, manager):
         self.base = base
         self.default = default
+        self.manager = manager
 
     def __setitem__(self, key, value):
         self.base[key] = value
@@ -16,7 +17,7 @@ class DefaultDict:
         try:
             return self.base[key]
         except KeyError:
-            self.base[key] = self.default
+            self.base[key] = self.manager.list(self.default)
         
         return self.base[key]
 
@@ -36,6 +37,7 @@ class Agent:
         self.load_qtable()
 
         self.previous_state = None
+        self.previous_reward = 0
 
         self.timer = time.time()
 
@@ -54,7 +56,7 @@ class Agent:
 
     def load_qtable(self):
         if self.multithreaded:
-            self.q_table = DefaultDict(self.env.shared[self.id], self.default_val)
+            self.q_table = DefaultDict(self.env.shared[self.id], self.default_val, self.env.manager)
         else:
             try:
                 with open(f'qtable{self.id}.pickle', 'rb') as file:
@@ -73,17 +75,15 @@ class Agent:
 
     @property
     def reward(self):
-        def calc_reward(state):
-            if state != None:
-                if sum(state[0]) == 0:
-                    return 0
-                if state[2] > 0:
-                    return -100
-                return state[1]
+        def calc_reward(metrics):
+            if metrics["collisions"] > 0:
+                return -10
+            if metrics != None:
+                return metrics["avg_speed"]
+
             return 0
 
-        reward = calc_reward(self.env.state) - calc_reward(self.previous_state)
-
+        reward = calc_reward(self.env.metrics) - self.previous_reward
         return reward
     
     def act(self):
@@ -100,12 +100,14 @@ class Agent:
         self.previous_state = self.env.state
     
     #At this point the environment already made the step
+    
     def update(self):
         self._lock()
         action = self.signal.current_cycle_index
         old_value = self.q_table[str(self.previous_state)][action]
         next_max = np.max(self.q_table[str(self.env.state)])
         new_value = (1 - self.alpha) * old_value + self.alpha * (self.reward + self.gamma * next_max)
+        self.previous_reward = self.reward
         self.q_table[str(self.previous_state)][action] = new_value
         self.save_qtable()
         self._unlock()

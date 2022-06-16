@@ -17,13 +17,30 @@ class MultithreadSimulation:
         config.update({
             "multithreaded": True,
             "shared": self.shared,
+            "manager": self.manager,
         })
 
-        for _ in range(cpu_count()):
+        for _ in range(cpu_count() - 2):
+        #for i in range(10):
             sim = Simulation(config)
             self.simulations.append(sim)
-        
+
+    @property
+    def roads(self):
+        return self.simulations[0].roads
     
+    @property
+    def traffic_signals(self):
+        return self.simulations[0].traffic_signals
+
+    @property
+    def t(self):
+        return self.simulations[0].t
+    
+    @property
+    def frame_count(self):
+        return self.simulations[0].frame_count
+
     def create_roads(self, road_list):
         for sim in self.simulations:
             sim.create_roads(road_list)
@@ -36,7 +53,7 @@ class MultithreadSimulation:
         lock = Lock()
         self.shared.append((self.manager.dict(self.load_shared(len(self.shared)))))
         for sim in self.simulations:
-            sim.create_signal(roads, lock, config) 
+            sim.create_signal(roads, lock, config)
 
     def load_shared(self, id):
         try:
@@ -51,11 +68,16 @@ class MultithreadSimulation:
         while True:
             for id, s in enumerate(self.shared):
                 with open(f'qtable{id}.pickle', 'wb') as file:
-                    pickle.dump(dict(s), file)
+                    table = {}
+                    for i in dict(s):
+                        table[i] = list(s[i])
+                    pickle.dump(table, file)
             time.sleep(5)
-            
 
-    def run(self):
+    def run(self, steps=1):
+        self.simulations[0].run(steps)
+
+    def run_forever(self):
         for sim in self.simulations:
             p = Process(target=sim.run_forever)
             p.start()
