@@ -319,8 +319,8 @@ class Window:
         self.plot_y.append(self.sim.metrics["avg_speed"])
 
         
-        plt.plot(self.plot_x, self.plot_y)
-        plt.pause(0.000005)
+        #plt.plot(self.plot_x, self.plot_y)
+        #plt.pause(0.000005)
 
 
     def draw_status(self):

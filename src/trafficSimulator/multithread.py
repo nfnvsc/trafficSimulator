@@ -24,7 +24,7 @@ class MultithreadSimulation:
         })
 
         #for i in range(cpu_count() - 4):
-        for i in range(12):
+        for i in range(20):
             config["id"] = i
             sim = Simulation(config)
             self.simulations.append(sim)
@@ -82,11 +82,12 @@ class MultithreadSimulation:
             time.sleep(20)
 
     def save_metrics(self):
-        while True:
+        while True:            
             item = self.shared_metrics.get(True)
-
             self.current_metrics.append(item)
-            print(item)
+            with open('metrics.pickle', 'wb') as file:
+                pickle.dump(self.current_metrics, file)
+            time.sleep(10)
 
     def run(self, steps=1):       
         self.simulations[0].run(steps)

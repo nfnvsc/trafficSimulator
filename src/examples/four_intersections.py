@@ -1,0 +1,287 @@
+import sys
+sys.path.append('.')
+from src.trafficSimulator import *
+
+sim = MultithreadSimulation()
+
+# Play with these
+n = 25
+a = 2
+b = 8
+l = 40
+
+# Nodes
+TOP_RIGHT_START = (-a+l, -b-2*l)
+TOP_RIGHT_END = (a+l, -b-2*l)
+TOP_LEFT_START = (-a-l, -b-2*l)
+TOP_LEFT_END = (a-l, -b-2*l)
+
+BOT_RIGHT_START = (a+l, b+2*l)
+BOT_RIGHT_END = (-a+l, b+2*l)
+BOT_LEFT_START = (a-l, b+2*l)
+BOT_LEFT_END = (-a-l, b+2*l)
+
+RIGHT_TOP_START = (b+2*l+100, -a-l)
+RIGHT_TOP_END = (b+2*l+100, a-l)
+RIGHT_BOT_START = (b+2*l+100, -a+l)
+RIGHT_BOT_END = (b+2*l+100, a+l)
+
+LEFT_TOP_START = (-b-2*l-100, a-l)
+LEFT_TOP_END = (-b-2*l-100, -a-l)
+LEFT_BOT_START = (-b-2*l-100, a+l)
+LEFT_BOT_END = (-b-2*l-100, -a+l)
+
+# Intersection 1 (TOP LEFT)
+I1_LEFT_TOP = (-b-l, -a-l)
+I1_LEFT_BOT = (-b-l, a-l)
+I1_BOT_RIGHT = (a-l, b-l)
+I1_BOT_LEFT = (-a-l, b-l)
+I1_RIGHT_TOP = (b-l, -a-l)
+I1_RIGHT_BOT = (b-l, a-l)
+I1_TOP_RIGHT = (a-l, -b-l)
+I1_TOP_LEFT = (-a-l, -b-l)
+
+# Intersection 2 (TOP RIGHT)
+I2_LEFT_TOP = (-b+l, -a-l)
+I2_LEFT_BOT = (-b+l, a-l)
+I2_BOT_RIGHT = (a+l, b-l)
+I2_BOT_LEFT = (-a+l, b-l)
+I2_RIGHT_TOP = (b+l, -a-l)
+I2_RIGHT_BOT = (b+l, a-l)
+I2_TOP_RIGHT = (a+l, -b-l)
+I2_TOP_LEFT = (-a+l, -b-l)
+
+# Intersection 3 (BOTTOM LEFT)
+I3_LEFT_TOP = (-b-l, -a+l)
+I3_LEFT_BOT = (-b-l, a+l)
+I3_BOT_RIGHT = (a-l, b+l)
+I3_BOT_LEFT = (-a-l, b+l)
+I3_RIGHT_TOP = (b-l, -a+l)
+I3_RIGHT_BOT = (b-l, a+l)
+I3_TOP_RIGHT = (a-l, -b+l)
+I3_TOP_LEFT = (-a-l, -b+l)
+
+# Intersection 4 (BOTTOM RIGHT)
+I4_LEFT_TOP = (-b+l, -a+l)
+I4_LEFT_BOT = (-b+l, a+l)
+I4_BOT_RIGHT = (a+l, b+l)
+I4_BOT_LEFT = (-a+l, b+l)
+I4_RIGHT_TOP = (b+l, -a+l)
+I4_RIGHT_BOT = (b+l, a+l)
+I4_TOP_RIGHT = (a+l, -b+l)
+I4_TOP_LEFT = (-a+l, -b+l)
+
+
+# Edge Roads
+TOP_RIGHT_INBOUND = (TOP_RIGHT_START,I2_TOP_LEFT)
+TOP_LEFT_INBOUND = (TOP_LEFT_START,I1_TOP_LEFT)
+BOT_RIGHT_INBOUND = (BOT_RIGHT_START,I4_BOT_RIGHT)
+BOT_LEFT_INBOUND = (BOT_LEFT_START,I3_BOT_RIGHT)
+LEFT_TOP_INBOUND = (LEFT_TOP_START,I1_LEFT_BOT)
+LEFT_BOT_INBOUND = (LEFT_BOT_START,I3_LEFT_BOT)
+RIGHT_TOP_INBOUND = (RIGHT_TOP_START,I2_RIGHT_TOP)
+RIGHT_BOT_INBOUND = (RIGHT_BOT_START,I4_RIGHT_TOP)
+
+TOP_RIGHT_OUTBOUND = (I2_TOP_RIGHT,TOP_RIGHT_END)
+TOP_LEFT_OUTBOUND = (I1_TOP_RIGHT,TOP_LEFT_END)
+BOT_RIGHT_OUTBOUND = (I4_BOT_LEFT,BOT_RIGHT_END)
+BOT_LEFT_OUTBOUND = (I3_BOT_LEFT,BOT_LEFT_END)
+LEFT_TOP_OUTBOUND = (I1_LEFT_TOP,LEFT_TOP_END)
+LEFT_BOT_OUTBOUND = (I3_LEFT_TOP,LEFT_BOT_END)
+RIGHT_TOP_OUTBOUND = (I2_RIGHT_BOT,RIGHT_TOP_END)
+RIGHT_BOT_OUTBOUND = (I4_RIGHT_BOT,RIGHT_BOT_END)
+
+# Connecting roads
+I1_I2 = (I1_RIGHT_BOT, I2_LEFT_BOT)
+I2_I1 = (I2_LEFT_TOP, I1_RIGHT_TOP)
+I1_I3 = (I1_BOT_LEFT, I3_TOP_LEFT)
+I3_I1 = (I3_TOP_RIGHT, I1_BOT_RIGHT)
+I2_I4 = (I2_BOT_LEFT, I4_TOP_LEFT)
+I4_I2 = (I4_TOP_RIGHT, I2_BOT_RIGHT)
+I3_I4 = (I3_RIGHT_BOT, I4_LEFT_BOT)
+I4_I3 = (I4_LEFT_TOP, I3_RIGHT_TOP)
+
+# Turns
+I1_LEFT_RIGHT_TURN = turn_road(I1_LEFT_BOT, I1_BOT_LEFT, TURN_RIGHT, n)
+I1_LEFT_LEFT_TURN = turn_road(I1_LEFT_BOT, I1_TOP_RIGHT, TURN_LEFT, n)
+I1_BOTTOM_RIGHT_TURN = turn_road(I1_BOT_RIGHT, I1_RIGHT_BOT, TURN_RIGHT, n)
+I1_BOTTOM_LEFT_TURN = turn_road(I1_BOT_RIGHT, I1_LEFT_TOP, TURN_LEFT, n)
+I1_RIGHT_RIGHT_TURN = turn_road(I1_RIGHT_TOP, I1_TOP_RIGHT, TURN_RIGHT, n)
+I1_RIGHT_LEFT_TURN = turn_road(I1_RIGHT_TOP, I1_BOT_LEFT, TURN_LEFT, n)
+I1_TOP_RIGHT_TURN = turn_road(I1_TOP_LEFT, I1_LEFT_TOP, TURN_RIGHT, n)
+I1_TOP_LEFT_TURN = turn_road(I1_TOP_LEFT, I1_RIGHT_BOT, TURN_LEFT, n)
+
+I2_LEFT_RIGHT_TURN = turn_road(I2_LEFT_BOT, I2_BOT_LEFT, TURN_RIGHT, n)
+I2_LEFT_LEFT_TURN = turn_road(I2_LEFT_BOT, I2_TOP_RIGHT, TURN_LEFT, n)
+I2_BOTTOM_RIGHT_TURN = turn_road(I2_BOT_RIGHT, I2_RIGHT_BOT, TURN_RIGHT, n)
+I2_BOTTOM_LEFT_TURN = turn_road(I2_BOT_RIGHT, I2_LEFT_TOP, TURN_LEFT, n)
+I2_RIGHT_RIGHT_TURN = turn_road(I2_RIGHT_TOP, I2_TOP_RIGHT, TURN_RIGHT, n)
+I2_RIGHT_LEFT_TURN = turn_road(I2_RIGHT_TOP, I2_BOT_LEFT, TURN_LEFT, n)
+I2_TOP_RIGHT_TURN = turn_road(I2_TOP_LEFT, I2_LEFT_TOP, TURN_RIGHT, n)
+I2_TOP_LEFT_TURN = turn_road(I2_TOP_LEFT, I2_RIGHT_BOT, TURN_LEFT, n)
+
+I3_LEFT_RIGHT_TURN = turn_road(I3_LEFT_BOT, I3_BOT_LEFT, TURN_RIGHT, n)
+I3_LEFT_LEFT_TURN = turn_road(I3_LEFT_BOT, I3_TOP_RIGHT, TURN_LEFT, n)
+I3_BOTTOM_RIGHT_TURN = turn_road(I3_BOT_RIGHT, I3_RIGHT_BOT, TURN_RIGHT, n)
+I3_BOTTOM_LEFT_TURN = turn_road(I3_BOT_RIGHT, I3_LEFT_TOP, TURN_LEFT, n)
+I3_RIGHT_RIGHT_TURN = turn_road(I3_RIGHT_TOP, I3_TOP_RIGHT, TURN_RIGHT, n)
+I3_RIGHT_LEFT_TURN = turn_road(I3_RIGHT_TOP, I3_BOT_LEFT, TURN_LEFT, n)
+I3_TOP_RIGHT_TURN = turn_road(I3_TOP_LEFT, I3_LEFT_TOP, TURN_RIGHT, n)
+I3_TOP_LEFT_TURN = turn_road(I3_TOP_LEFT, I3_RIGHT_BOT, TURN_LEFT, n)
+
+I4_LEFT_RIGHT_TURN = turn_road(I4_LEFT_BOT, I4_BOT_LEFT, TURN_RIGHT, n)
+I4_LEFT_LEFT_TURN = turn_road(I4_LEFT_BOT, I4_TOP_RIGHT, TURN_LEFT, n)
+I4_BOTTOM_RIGHT_TURN = turn_road(I4_BOT_RIGHT, I4_RIGHT_BOT, TURN_RIGHT, n)
+I4_BOTTOM_LEFT_TURN = turn_road(I4_BOT_RIGHT, I4_LEFT_TOP, TURN_LEFT, n)
+I4_RIGHT_RIGHT_TURN = turn_road(I4_RIGHT_TOP, I4_TOP_RIGHT, TURN_RIGHT, n)
+I4_RIGHT_LEFT_TURN = turn_road(I4_RIGHT_TOP, I4_BOT_LEFT, TURN_LEFT, n)
+I4_TOP_RIGHT_TURN = turn_road(I4_TOP_LEFT, I4_LEFT_TOP, TURN_RIGHT, n)
+I4_TOP_LEFT_TURN = turn_road(I4_TOP_LEFT, I4_RIGHT_BOT, TURN_LEFT, n)
+
+# Straights
+I1_HORIZ_TOP = (I1_RIGHT_TOP,I1_LEFT_TOP)
+I1_HORIZ_BOT = (I1_LEFT_BOT,I1_RIGHT_BOT)
+I1_VERT_LEFT = (I1_TOP_LEFT,I1_BOT_LEFT)
+I1_VERT_RIGHT = (I1_BOT_RIGHT,I1_TOP_RIGHT)
+
+I2_HORIZ_TOP = (I2_RIGHT_TOP,I2_LEFT_TOP)
+I2_HORIZ_BOT = (I2_LEFT_BOT,I2_RIGHT_BOT)
+I2_VERT_LEFT = (I2_TOP_LEFT,I2_BOT_LEFT)
+I2_VERT_RIGHT = (I2_BOT_RIGHT,I2_TOP_RIGHT)
+
+I3_HORIZ_TOP = (I3_RIGHT_TOP,I3_LEFT_TOP)
+I3_HORIZ_BOT = (I3_LEFT_BOT,I3_RIGHT_BOT)
+I3_VERT_LEFT = (I3_TOP_LEFT,I3_BOT_LEFT)
+I3_VERT_RIGHT = (I3_BOT_RIGHT,I3_TOP_RIGHT)
+
+I4_HORIZ_TOP = (I4_RIGHT_TOP,I4_LEFT_TOP)
+I4_HORIZ_BOT = (I4_LEFT_BOT,I4_RIGHT_BOT)
+I4_VERT_LEFT = (I4_TOP_LEFT,I4_BOT_LEFT)
+I4_VERT_RIGHT = (I4_BOT_RIGHT,I4_TOP_RIGHT)
+
+sim.create_roads([
+    TOP_RIGHT_INBOUND,
+    TOP_LEFT_INBOUND,
+    BOT_RIGHT_INBOUND,
+    BOT_LEFT_INBOUND,
+    LEFT_TOP_INBOUND,
+    LEFT_BOT_INBOUND,
+    RIGHT_TOP_INBOUND,
+    RIGHT_BOT_INBOUND,
+
+    TOP_RIGHT_OUTBOUND,
+    TOP_LEFT_OUTBOUND,
+    BOT_RIGHT_OUTBOUND,
+    BOT_LEFT_OUTBOUND,
+    LEFT_TOP_OUTBOUND,
+    LEFT_BOT_OUTBOUND,
+    RIGHT_TOP_OUTBOUND,
+    RIGHT_BOT_OUTBOUND,
+
+    I1_I2,
+    I2_I1,
+    I1_I3,
+    I3_I1,
+    I2_I4,
+    I4_I2,
+    I3_I4,
+    I4_I3,
+
+    I1_HORIZ_TOP,
+    I1_HORIZ_BOT,
+    I1_VERT_LEFT,
+    I1_VERT_RIGHT,
+
+    I2_HORIZ_TOP,
+    I2_HORIZ_BOT,
+    I2_VERT_LEFT,
+    I2_VERT_RIGHT,
+
+    I3_HORIZ_TOP,
+    I3_HORIZ_BOT,
+    I3_VERT_LEFT,
+    I3_VERT_RIGHT,
+
+    I4_HORIZ_TOP,
+    I4_HORIZ_BOT,
+    I4_VERT_LEFT,
+    I4_VERT_RIGHT,
+
+    *I1_LEFT_RIGHT_TURN,
+    *I1_LEFT_LEFT_TURN,
+    *I1_BOTTOM_RIGHT_TURN,
+    *I1_BOTTOM_LEFT_TURN,
+    *I1_RIGHT_RIGHT_TURN,
+    *I1_RIGHT_LEFT_TURN,
+    *I1_TOP_RIGHT_TURN,
+    *I1_TOP_LEFT_TURN,
+
+    *I2_LEFT_RIGHT_TURN,
+    *I2_LEFT_LEFT_TURN,
+    *I2_BOTTOM_RIGHT_TURN,
+    *I2_BOTTOM_LEFT_TURN,
+    *I2_RIGHT_RIGHT_TURN,
+    *I2_RIGHT_LEFT_TURN,
+    *I2_TOP_RIGHT_TURN,
+    *I2_TOP_LEFT_TURN,
+
+    *I3_LEFT_RIGHT_TURN,
+    *I3_LEFT_LEFT_TURN,
+    *I3_BOTTOM_RIGHT_TURN,
+    *I3_BOTTOM_LEFT_TURN,
+    *I3_RIGHT_RIGHT_TURN,
+    *I3_RIGHT_LEFT_TURN,
+    *I3_TOP_RIGHT_TURN,
+    *I3_TOP_LEFT_TURN,
+
+    *I4_LEFT_RIGHT_TURN,
+    *I4_LEFT_LEFT_TURN,
+    *I4_BOTTOM_RIGHT_TURN,
+    *I4_BOTTOM_LEFT_TURN,
+    *I4_RIGHT_RIGHT_TURN,
+    *I4_RIGHT_LEFT_TURN,
+    *I4_TOP_RIGHT_TURN,
+    *I4_TOP_LEFT_TURN,
+])
+
+def road(a): return range(a, a+n)
+
+sim.create_gen({
+'vehicle_rate': 30,
+'vehicles':[
+    [3, {'path': [0, 30, 20, 38, 10]}],
+    [3, {'path': [1, 26, 18, 34, 11]}],
+    [3, {'path': [2, 39, 21, 31, 8]}],
+    [3, {'path': [3, 35, 19, 27, 9]}],
+    [3, {'path': [4, 25, 16, 29, 14]}],
+    [3, {'path': [5, 33, 22, 37, 15]}],
+    [3, {'path': [6, 28, 17, 24, 12]}],
+    [3, {'path': [7, 36, 23, 32, 13]}],
+
+]})
+
+sim.create_signal([[0]])
+sim.create_signal([[1]])
+sim.create_signal([[2]])
+sim.create_signal([[3]])
+sim.create_signal([[4]])
+sim.create_signal([[5]])
+sim.create_signal([[6]])
+sim.create_signal([[7]])
+
+sim.create_signal([[16]])
+sim.create_signal([[17]])
+sim.create_signal([[18]])
+sim.create_signal([[19]])
+sim.create_signal([[20]])
+sim.create_signal([[21]])
+sim.create_signal([[22]])
+sim.create_signal([[23]])
+
+sim.run_forever()
+#while True:
+#    sim.update()
+# Start simulation
+win = Window(sim)
+win.zoom = 5
+win.run(steps_per_update=5)

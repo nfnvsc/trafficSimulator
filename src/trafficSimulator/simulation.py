@@ -27,13 +27,14 @@ class Simulation:
         self.agents = []
         self.configs = []
         self.multithreaded = False
-        self.sarsa = True
+        self.sarsa = False
         self.metrics = {
             "collisions": 0,
             "avg_speed": 0,
             "vehicles": [],
             "vehicle_count": 0,
-            "vehicles_per_signal": {}
+            "vehicles_per_signal": {},
+            "episodes": 0
         }
 
     def create_road(self, start, end):
@@ -46,7 +47,7 @@ class Simulation:
             self.create_road(*road)
 
     def create_gen(self, config={}, init=True):
-        if init: 
+        if init:
             self.configs.append(config)
         gen = VehicleGenerator(self, config)
         self.generators.append(gen)
@@ -205,7 +206,8 @@ class Simulation:
             self.shared_metrics.put({
                 "avg_speed": self.metrics["avg_speed"],
                 "collisions": self.metrics["collisions"],
-                "steps": self.t
+                "steps": self.t,
+                "episodes": self.metrics["episodes"]
             })
 
         self.t = 0.0
@@ -215,7 +217,8 @@ class Simulation:
             "avg_speed": 0,
             "vehicles": [],
             "vehicle_count": 0,
-            "vehicles_per_signal": {}
+            "vehicles_per_signal": {},
+            "episodes": self.metrics["episodes"] + 1
         }
 
         self.generators = []
