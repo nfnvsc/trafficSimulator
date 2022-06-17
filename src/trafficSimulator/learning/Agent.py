@@ -5,10 +5,9 @@ from collections import defaultdict
 import time
 
 class DefaultDict:
-    def __init__(self, base, default, manager):
+    def __init__(self, base, default):
         self.base = base
         self.default = default
-        self.manager = manager
 
     def __setitem__(self, key, value):
         self.base[key] = value
@@ -17,7 +16,7 @@ class DefaultDict:
         try:
             return self.base[key]
         except KeyError:
-            self.base[key] = self.manager.list(self.default)
+            self.base[key] = self.default
         
         return self.base[key]
 
@@ -43,27 +42,16 @@ class Agent:
 
     def set_default_config(self):
         self.multithreaded = False
-        self.default_val = np.zeros(len(self.action_space))
+        self.default_val = 0
 
     def save_qtable(self):
         if self.multithreaded:
             pass
-        else:
-            if time.time() - self.timer > 5:
-                with open(f'qtable{self.id}.pickle', 'wb') as file:
-                    pickle.dump(dict(self.q_table), file)
-                self.timer = time.time()
 
     def load_qtable(self):
         if self.multithreaded:
-            self.q_table = DefaultDict(self.env.shared[self.id], self.default_val, self.env.manager)
-        else:
-            try:
-                with open(f'qtable{self.id}.pickle', 'rb') as file:
-                    q_table = pickle.load(file)
-                    self.q_table = defaultdict(lambda: np.zeros(len(self.action_space)), q_table)
-            except FileNotFoundError:
-                self.q_table = defaultdict(lambda: np.zeros(len(self.action_space)))
+            self.q_table = DefaultDict(self.env.shared[self.id], self.default_val)
+
 
     def _lock(self):
         if self.multithreaded:
@@ -77,13 +65,19 @@ class Agent:
     def reward(self):
         def calc_reward(metrics):
             if metrics["collisions"] > 0:
-                return -10
+                #print('colision')
+                return -100
             if metrics != None:
-                return metrics["avg_speed"]
-
+                return  metrics["avg_speed"]
             return 0
 
-        reward = calc_reward(self.env.metrics) - self.previous_reward
+        reward = calc_reward(self.env.metrics)
+        #try:
+        #    reward = sum([v.x for v in self.signal.roads[0][0].vehicles])/len(self.signal.roads[0][0].vehicles)
+        #except ZeroDivisionError:
+        #    reward = 5
+        #
+        #print(reward)
         return reward
     
     def act(self):
@@ -93,24 +87,28 @@ class Agent:
             action = random.choice(self.action_space)
         else:
             self._lock()
-            action = np.argmax(self.q_table[str(self.env.state)]) # Exploit learned values
+            vals = [self.q_table[str(self.env.state), a] for a in self.action_space]
+            action = np.argmax(vals) # Exploit learned values
             self._unlock()
+        
+        self.previous_state = str(self.env.state)
 
         self.signal.current_cycle_index = action
-        self.previous_state = self.env.state
     
     #At this point the environment already made the step
-    
     def update(self):
         self._lock()
         action = self.signal.current_cycle_index
-        old_value = self.q_table[str(self.previous_state)][action]
-        next_max = np.max(self.q_table[str(self.env.state)])
+        old_value = self.q_table[str(self.previous_state), action]
+        vals = [self.q_table[str(self.env.state), a] for a in self.action_space]
+        next_max = np.max(vals)
         new_value = (1 - self.alpha) * old_value + self.alpha * (self.reward + self.gamma * next_max)
         self.previous_reward = self.reward
-        self.q_table[str(self.previous_state)][action] = new_value
+        self.q_table[str(self.previous_state), action] = new_value
         self.save_qtable()
+        #self.epsilon *= 0.995
         self._unlock()
     
     def reset(self):
-        self.previous_state = self.env.state
+        self.signal.current_cycle_index = 0
+        self.previous_state = None

@@ -2,6 +2,10 @@ import pygame
 from pygame import gfxdraw
 import numpy as np
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+
 class Window:
     def __init__(self, sim, config={}):
         # Simulation to draw
@@ -27,6 +31,9 @@ class Window:
         self.mouse_last = (0, 0)
         self.mouse_down = False
 
+        self.plot_x = []
+        self.plot_y = []
+
 
     def loop(self, loop=None):
         """Shows a window visualizing the simulation and runs the loop function."""
@@ -42,6 +49,9 @@ class Window:
         pygame.font.init()
         self.text_font = pygame.font.SysFont('Lucida Console', 16)
 
+        plt.plot(self.plot_x, self.plot_y)
+        plt.ion()
+        plt.show(block=False)
         # Draw loop
         running = True
         while running:
@@ -89,6 +99,7 @@ class Window:
         def loop(sim):
             sim.run(steps_per_update)
         self.loop(loop)
+
 
     def convert(self, x, y=None):
         """Converts simulation coordinates to screen coordinates"""
@@ -303,12 +314,23 @@ class Window:
                         cos=road.angle_cos, sin=road.angle_sin,
                         color=color)
 
+    def draw_plot(self):
+        self.plot_x.append(self.sim.t)
+        self.plot_y.append(self.sim.metrics["avg_speed"])
+
+        
+        plt.plot(self.plot_x, self.plot_y)
+        plt.pause(0.000005)
+
+
     def draw_status(self):
         text_fps = self.text_font.render(f't={self.sim.t:.5}', False, (0, 0, 0))
         text_frc = self.text_font.render(f'n={self.sim.frame_count}', False, (0, 0, 0))
+        text_met = self.text_font.render(f'avg_speed={self.sim.metrics["avg_speed"]}', False, (0, 0, 0))
         
         self.screen.blit(text_fps, (0, 0))
         self.screen.blit(text_frc, (100, 0))
+        self.screen.blit(text_met, (200, 0))
 
 
     def draw(self):
@@ -326,4 +348,5 @@ class Window:
 
         # Draw status info
         self.draw_status()
+        self.draw_plot()
         

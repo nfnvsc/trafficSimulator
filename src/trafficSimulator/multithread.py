@@ -1,30 +1,34 @@
-from multiprocessing import cpu_count, Process, Lock, Manager
-from multiprocessing.managers import BaseManager, DictProxy, ListProxy
+from multiprocessing import cpu_count, Process, Lock, Manager, Queue
 
 from src.trafficSimulator.simulation import Simulation
-from collections import defaultdict
 
 import pickle
 import time
+
 
 class MultithreadSimulation:
     def __init__(self, config={}) -> None:
         self.processes = []
         self.manager = Manager()
         self.shared = self.manager.list()
+        self.shared_metrics = Queue()
         self.simulations = []
+        self.current_metrics = []
 
         config.update({
+            "id": 0,
             "multithreaded": True,
             "shared": self.shared,
             "manager": self.manager,
+            "shared_metrics": self.shared_metrics
         })
 
-        for _ in range(cpu_count() - 2):
-        #for i in range(10):
+        #for i in range(cpu_count() - 4):
+        for i in range(2):
+            config["id"] = i
             sim = Simulation(config)
             self.simulations.append(sim)
-
+        
     @property
     def roads(self):
         return self.simulations[0].roads
@@ -40,6 +44,11 @@ class MultithreadSimulation:
     @property
     def frame_count(self):
         return self.simulations[0].frame_count
+    
+    @property
+    def metrics(self):
+        return self.simulations[0].metrics
+
 
     def create_roads(self, road_list):
         for sim in self.simulations:
@@ -68,13 +77,18 @@ class MultithreadSimulation:
         while True:
             for id, s in enumerate(self.shared):
                 with open(f'qtable{id}.pickle', 'wb') as file:
-                    table = {}
-                    for i in dict(s):
-                        table[i] = list(s[i])
-                    pickle.dump(table, file)
-            time.sleep(5)
+                    pickle.dump(dict(s), file)
 
-    def run(self, steps=1):
+            time.sleep(20)
+
+    def save_metrics(self):
+        while True:
+            item = self.shared_metrics.get(True)
+
+            self.current_metrics.append(item)
+            print(item)
+
+    def run(self, steps=1):       
         self.simulations[0].run(steps)
 
     def run_forever(self):
@@ -86,7 +100,11 @@ class MultithreadSimulation:
         p = Process(target=self.save_shared)
         p.start()
         self.processes.append(p)
-        
+
+        p = Process(target=self.save_metrics)
+        p.start()
+        self.processes.append(p)
+
         for p in self.processes:
             p.join()
         

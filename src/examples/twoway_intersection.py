@@ -118,7 +118,7 @@ sim.create_gen({
 
 sim.create_signal([[0]])
 sim.create_signal([[1]])
-#sim.run_forever()
+sim.run_forever()
 #while True:
 #    sim.update()
 # Start simulation

@@ -31,7 +31,8 @@ class Simulation:
             "collisions": 0,
             "avg_speed": 0,
             "vehicles": [],
-            "vehicle_count": 0
+            "vehicle_count": 0,
+            "vehicles_per_signal": {}
         }
 
     def create_road(self, start, end):
@@ -56,11 +57,15 @@ class Simulation:
         sig = TrafficSignal(roads, config)
         self.traffic_signals.append(sig)
 
+        if self.id == 0:
+            epsilon = 0.0
+        else:
+            epsilon = 0.6
         agent = Agent(self, sig, {
             "id": len(self.agents),
-            "epsilon": 0.0,
-            "alpha": 0.6,
-            "gamma": 0.9,
+            "epsilon": epsilon,
+            "alpha": 0.8,
+            "gamma": 0.4,
             "multithreaded": self.multithreaded,
             "lock": lock
         })
@@ -70,15 +75,22 @@ class Simulation:
 
     @property
     def state(self):
-        vehicles = []
+        vehicles = {}
         for v in self.metrics['vehicles']:
-            vehicles.append((v[0], v[1] // 50))
-        s = [vehicles]
-        return s
+            key = (v[0], v[1] // 20)
+            try:
+                vehicles[key] += 1
+            except KeyError:
+                vehicles[key] = 1
+
+        return [list(vehicles), [sig.current_cycle_index for sig in self.traffic_signals]]
+        #return [list(self.metrics['vehicles_per_signal']), [sig.current_cycle_index for sig in self.traffic_signals]]
+
 
     def update_metrics(self):
         vehicles = []
         vehicle_count = []
+        vehicles_per_signal = {}
         avg_speed = 0
         total_vehicles = 1
         for i, r in enumerate(self.roads):
@@ -87,12 +99,18 @@ class Simulation:
             if r.has_traffic_signal:
                 vehicle_count.append(len(r.vehicles))
                 for v in r.vehicles:
+                    if i in vehicles_per_signal:
+                        vehicles_per_signal[i] += 1
+                    else:
+                        vehicles_per_signal[i] = 1
+
                     total_vehicles += 1
                     avg_speed += v.v
 
-        self.metrics["avg_speed"] = int(avg_speed/total_vehicles)
+        self.metrics["avg_speed"] = avg_speed/total_vehicles
         self.metrics["vehicles"] = vehicles
         self.metrics["vehicle_count"] = vehicle_count
+        self.metrics["vehicles_per_signal"] = vehicles_per_signal
 
     def _check_collisions(self):
         vehicles = []
@@ -115,7 +133,16 @@ class Simulation:
 
     def update(self):
         # Update every road
-        time = 60
+        time = 15
+        reset_time = 120
+        if self.frame_count % (time / self.dt) == 0:
+            pass
+            #for agent in self.agents:
+            #    agent.act()
+
+        for sig in self.traffic_signals:
+            sig.update(self)
+
         for road in self.roads:
             road.update(self.dt)
 
@@ -123,9 +150,6 @@ class Simulation:
         for gen in self.generators:
             gen.update()
         
-        if self.frame_count % (time / self.dt) == 0:
-            for agent in self.agents:
-                agent.act()
 
         # Check roads for out of bounds vehicle
         for road in self.roads:
@@ -150,18 +174,19 @@ class Simulation:
             
         self._check_collisions()
 
-        if self.metrics["collisions"] > 1:
-            self.reset()
-
-
-        if self.frame_count % (time / self.dt) == (time / self.dt / 2):
-            for agent in self.agents:
-                agent.update()
-
         # Increment time
         self.t += self.dt
         self.frame_count += 1
         self.update_metrics()
+        
+        if self.metrics["collisions"] > 1 or self.frame_count % (reset_time / self.dt) == (reset_time / self.dt - 1):
+            self.reset()
+
+        if self.frame_count % (time / self.dt) == (time / self.dt - 1):
+            pass
+            #for agent in self.agents:
+            #    agent.update()
+
 
     def run_forever(self):
         while True:
@@ -174,13 +199,22 @@ class Simulation:
     def reset(self):
         for agent in self.agents:
             agent.update()
+
+        if self.id == 0:
+            self.shared_metrics.put({
+                "avg_speed": self.metrics["avg_speed"],
+                "collisions": self.metrics["collisions"],
+                "steps": self.t
+            })
+
         self.t = 0.0
         self.frame_count = 0
         self.metrics = {
             "collisions": 0,
             "avg_speed": 0,
             "vehicles": [],
-            "vehicle_count": 0
+            "vehicle_count": 0,
+            "vehicles_per_signal": {}
         }
 
         self.generators = []
