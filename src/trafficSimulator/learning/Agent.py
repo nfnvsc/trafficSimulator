@@ -22,7 +22,7 @@ class DefaultDict:
 
 
 class Agent:
-    def __init__(self, env, signal, config={}):
+    def __init__(self, env, signal, sarsa, config={}):
         self.env = env
         self.signal = signal
 
@@ -34,11 +34,13 @@ class Agent:
             setattr(self, attr, val)
 
         self.load_qtable()
-
+        self.previous_action = None
         self.previous_state = None
         self.previous_reward = 0
 
         self.timer = time.time()
+
+        self.using_sarsa = sarsa
 
     def set_default_config(self):
         self.multithreaded = False
@@ -95,20 +97,44 @@ class Agent:
 
         self.signal.current_cycle_index = action
     
-    #At this point the environment already made the step
+    # At this point the environment already made the step
+    
     def update(self):
         self._lock()
-        action = self.signal.current_cycle_index
-        old_value = self.q_table[str(self.previous_state), action]
-        vals = [self.q_table[str(self.env.state), a] for a in self.action_space]
-        next_max = np.max(vals)
-        new_value = (1 - self.alpha) * old_value + self.alpha * (self.reward + self.gamma * next_max)
-        self.previous_reward = self.reward
-        self.q_table[str(self.previous_state), action] = new_value
-        self.save_qtable()
-        #self.epsilon *= 0.995
+
+        if not self.using_sarsa:
+            action = self.signal.current_cycle_index
+            old_value = self.q_table[str(self.previous_state), action]
+            vals = [self.q_table[str(self.env.state), a] for a in self.action_space]
+            next_max = np.max(vals)
+            new_value = (1 - self.alpha) * old_value + self.alpha * (self.reward + self.gamma * next_max)
+            #self.previous_reward = self.reward
+            self.q_table[str(self.previous_state), action] = new_value
+
+        else:
+            # Do sarsa things
+            action = self.signal.current_cycle_index
+            current_q = self.q_table[str(self.previous_state), action]
+
+            vals = [self.q_table[str(self.env.state), a] for a in self.action_space]
+            
+            next_action = np.argmax(vals)
+
+            next_q = self.q_table[str(self.env.state), next_action]
+
+            new_q = current_q + self.alpha * (self.reward + self.gamma * next_q - current_q)   # next_max becomes Q(S',A')
+
+            #self.previous_reward = self.reward
+            #action = new_action
+
+            self.q_table[str(self.previous_state), action] = new_q
+
         self._unlock()
-    
+
     def reset(self):
         self.signal.current_cycle_index = 0
         self.previous_state = None
+        #self.previous_action = None
+        #if self.using_sarsa:
+        #    #self.act()
+        #    self.previous_action = self.signal.current_cycle_index

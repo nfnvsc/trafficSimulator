@@ -27,6 +27,7 @@ class Simulation:
         self.agents = []
         self.configs = []
         self.multithreaded = False
+        self.sarsa = True
         self.metrics = {
             "collisions": 0,
             "avg_speed": 0,
@@ -61,10 +62,10 @@ class Simulation:
             epsilon = 0.0
         else:
             epsilon = 0.6
-        agent = Agent(self, sig, {
+        agent = Agent(self, sig, self.sarsa, {
             "id": len(self.agents),
             "epsilon": epsilon,
-            "alpha": 0.8,
+            "alpha": 1,
             "gamma": 0.4,
             "multithreaded": self.multithreaded,
             "lock": lock
@@ -136,12 +137,12 @@ class Simulation:
         time = 15
         reset_time = 120
         if self.frame_count % (time / self.dt) == 0:
-            pass
-            #for agent in self.agents:
-            #    agent.act()
+            #pass
+            for agent in self.agents:
+                agent.act()
 
-        for sig in self.traffic_signals:
-            sig.update(self)
+        #for sig in self.traffic_signals:
+        #    sig.update(self)
 
         for road in self.roads:
             road.update(self.dt)
@@ -183,9 +184,9 @@ class Simulation:
             self.reset()
 
         if self.frame_count % (time / self.dt) == (time / self.dt - 1):
-            pass
-            #for agent in self.agents:
-            #    agent.update()
+            #pass
+            for agent in self.agents:
+                agent.update()
 
 
     def run_forever(self):

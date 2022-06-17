@@ -24,7 +24,7 @@ class MultithreadSimulation:
         })
 
         #for i in range(cpu_count() - 4):
-        for i in range(2):
+        for i in range(12):
             config["id"] = i
             sim = Simulation(config)
             self.simulations.append(sim)
